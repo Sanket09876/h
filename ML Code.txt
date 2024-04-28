@@ -1,0 +1,313 @@
+import numpy as np
+
+class Linear_reg:
+    def __init__(self):
+        self.weights=None
+        self.bias= None
+    
+    def fit(self,X,y):
+        X = np.hstack((np.ones((X.shape[0],1)),X))
+
+        self.weights= np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)
+        self.bias= self.weights[0]
+        self.weights=self.weights[1:]
+
+    def predict(self,X):
+        X = np.hstack((np.ones((X.shape[0],1)),X))
+        return X.dot(np.hstack((self.bias,self.weights)))
+    
+
+X_train = np.array([[1], [2], [3], [4], [5]])
+y_train = np.array([2, 4, 6, 8, 10])
+
+model = Linear_reg()
+model.fit(X_train, y_train)
+
+
+X_test = np.array([[6], [7], [8]])
+predictions = model.predict(X_test)
+print(predictions)
+///////////////////////////////////////////////////////////////////
+
+import numpy as np
+
+class Logistic:
+    def __init__(self, learning_rate=0.01, num_of_iteration=1000):
+        self.learning_rate= learning_rate
+        self.num_of_iteration=num_of_iteration
+        self.weights=None
+        self.bais=None
+
+    def sigmoid(self,z):
+        return 1/(1+ np.exp(-z))
+    
+    def fit(self,X,y):
+        num_sample, num_features = X.shape
+        self.weights=np.zeros(num_features)
+        self.bais=0
+        
+        for _ in range(self.num_of_iteration):
+            linear_model = np.dot(X,self.weights)+ self.bais
+            y_predicted = self.sigmoid(linear_model)
+
+            dw = 1/num_sample * np.dot(X.T, (y_predicted-y))
+            db = 1/num_sample * np.sum(y_predicted-y)
+
+            self.weights -= self.learning_rate *dw
+            self.bais -= self.learning_rate *db
+
+    def predict(self,X):
+        linear_model = np.dot(X,self.weights)+ self.bais
+        y_predicted = self.sigmoid(linear_model)
+        y_predicted_cls = [1 if i > 0.5 else 0 for i in y_predicted]
+        return np.array(y_predicted_cls)
+    
+X = np.array([[1],[2],[3],[4]])
+y= np.array([1,3,2,4])
+
+model =Logistic()
+model.fit(X,y)
+pred =model.predict([[1],[2],[3]])
+print(pred)
+//////////////////////////////////////////////////////////
+
+import numpy as np 
+from sklearn.model_selection import train_test_split
+from sklearn import datasets
+
+class SVM:
+    def __init__(self, learning_rate=0.01, lamda_parameter=0.01, n_iteration=1000):
+        self.lr=learning_rate
+        self.lp=lamda_parameter
+        self.iter=n_iteration
+        self.w=None
+        self.b=None
+    
+    def fit(self,X,y):
+        
+        n_sample, n_features = X.shape
+        y_ =np.where(y <= 0,-1,1)
+
+        self.w=np.zeros(n_features)
+        self.b=0
+
+        for _ in range(self.iter):
+            for idx, x_i in enumerate(X):
+                condition= y_[idx] * (np.dot(x_i, self.w)-self.b) >=1
+                if condition:
+                    self.w -= self.lr * (2* self.lp * self.w)
+                else :
+                    self.w -= self.lr * (2* self.lp * self.w - np.dot(x_i, y_[idx]))
+                    self.b -= self.lr * y_[idx]
+
+    def predict(self,X):
+        approx =np.dot(X,self.w)-self.b
+        return np.sign(approx)
+    
+if __name__ == "__main__":
+    X, y = datasets.make_blobs(
+        n_samples=50, n_features=2, centers=2, cluster_std=1.05, random_state=40
+    )
+    y = np.where(y == 0, -1, 1)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=123
+    )
+
+    clf = SVM()
+    clf.fit(X_train, y_train)
+    predictions = clf.predict(X_test)
+
+    def accuracy(y_true, y_pred):
+        accuracy = np.sum(y_true == y_pred) / len(y_true)
+        return accuracy
+
+    print(f"SVM classification accuracy : {accuracy(y_test, predictions)}")
+/////////////////////////////////////////////////////////////
+
+class McCullohPittsNeuron:
+    
+    def __init__(self, weights, thresold):
+        self.weights= weights
+        self.thresold=thresold
+
+    def activate(self, input):
+        if len(input) != len(self.weights):
+            raise ValueError('Inputs is not equal to the weights')
+        
+        weights_sum =sum(w*x for w,x in zip(self.weights,input))
+
+        if weights_sum>=self.thresold:
+            return 1
+        else:
+            return 0
+        
+if __name__ == "__main__":
+    weights = [0.5,0.5]
+    thresold = 1.0
+
+    neuron = McCullohPittsNeuron(weights,thresold)
+
+    input1 = [0,0]
+    input2 = [0,1]
+    input3 = [1,0]
+    input4 = [1,1]
+
+print(neuron.activate(input1))
+print(neuron.activate(input2))
+print(neuron.activate(input3))
+print(neuron.activate(input4))
+///////////////////////////////////////////////////////////////
+
+import numpy as np
+class perceptron:
+    def __init__(self, learning_rate=0.01, num_epochs= 100):
+        self.lr= learning_rate
+        self.iter = num_epochs
+        self.w = None
+        self.b = None
+
+    def fit(self,X,y):
+        num_sample, num_feature = X.shape
+        self.w= np.zeros(num_feature)
+        self.b = 0
+
+        for _ in range (self.iter):
+            for i in range(num_sample):
+                linear_model = np.dot(X[i],self.w)+self.b
+                y_pred = self.activate(linear_model)
+                update = self.lr * (y[i]- y_pred)
+                self.w += update * X[i]
+                self.b += update
+
+    def activate(self,x):
+        return np.where(x >= 0,1,0)
+    
+    def predict(self,X):
+        linear_model = np.dot(X,self.w)+self.b
+        return self.activate(linear_model)
+
+if __name__ == "__main__":
+    # Example training data
+    X_train = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    y_train = np.array([0, 0, 0, 1])
+
+    # Create and fit the perceptron
+    perceptron = perceptron()
+    perceptron.fit(X_train, y_train)
+
+    # Example test data
+    X_test = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+
+    # Predict
+    predictions = perceptron.predict(X_test)
+    print("Predictions:", predictions)
+///////////////////////////////////////////////////////////////
+
+import numpy as np
+
+class mlp:
+    def __init__(self, input_size, hidden_size, output_size, epoch, learning_rate):
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.epoch = epoch
+        self.learning_rate = learning_rate
+        
+        self.hidden_weight = np.random.randn(input_size,hidden_size)
+        self.hidden_bias = np.zeros(hidden_size)
+        self.output_weight = np.random.randn(hidden_size,output_size)
+        self.output_bias = np.zeros(output_size)
+
+    def sigmoid(self,x):
+        return 1/(1+np.exp(-x))
+    
+    def der_sigmoid(self,x):
+        return x*(1-x)
+        
+    def forward(self,X):
+        self.hidden_input= np.dot(X, self.hidden_weight) +self.hidden_bias
+        self.hidden_output = self.sigmoid(self.hidden_input) 
+        self.output = np.dot(self.hidden_output,self.output_weight) + self.output_bias
+        return self.output
+    
+    def backward(self,X,y):
+        output_error = y- self.output
+        output_delta = output_error*self.der_sigmoid(self.output)
+
+        hidden_error = output_delta.dot(self.output_weight.T)
+        hidden_delta = hidden_error*self.der_sigmoid(self.hidden_output)
+
+        self.hidden_weight += self.learning_rate* X.T.dot(hidden_delta)
+        self.hidden_bias += self.learning_rate* np.sum(hidden_delta, axis=0)
+        self.output_weight += self.learning_rate* self.hidden_output.T.dot(output_delta)
+        self.output_bias += self.learning_rate* np.sum(output_delta)
+
+    def fit(self,X,y):
+        for _ in range(self.epoch):
+            output= self.forward(X)
+            self.backward(X,y)
+
+    def predict(self,X):
+        return self.forward(X)
+    
+# Example usage
+if __name__ == "__main__":
+    # Example training data
+    X_train = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    y_train = np.array([[0], [1], [1], [0]])
+
+    # Create and train the MLP
+    mlp = mlp(input_size=2, hidden_size=4, output_size=1, learning_rate=0.1, epoch=10)
+    mlp.fit(X_train, y_train)
+
+    # Example test data
+    X_test = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+
+    # Predict
+    predictions = mlp.predict(X_test)
+    print("Predictions:", predictions)
+
+//////////////////////////////////////////////////////////////////////
+
+import numpy as np
+
+class PCA:
+    def __init__(self, n_components):
+
+        self.n_components =n_components
+        self.components = None
+        self.means=None
+
+    def fit(self,X):
+        self.means=np.mean(X)
+        X_centered = X - self.means
+        cov_max = np.cov(X_centered, rowvar=False)
+        eigenvalue, eigenvector = np.linalg.eigh(cov_max)
+
+        sorted_indices = np.argsort(eigenvalue)[::-1]
+        sorted_eigenvalues = eigenvalue[sorted_indices]
+        sorted_eigenvectors = eigenvector[:,sorted_indices]
+        
+        self.components= sorted_eigenvectors[:,:self.n_components]
+
+    def transform(self,X):
+        X_centered =X -self.means
+        return np.dot(X_centered,self.components)
+    
+if __name__ == "__main__":
+    # Example data
+    X = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+
+    # Create and fit PCA
+    pca = PCA(n_components=2)
+    pca.fit(X)
+
+    # Transform the data
+    X_transformed = pca.transform(X)
+
+    print("Original data:")
+    print(X)
+    print("\nTransformed data (2 components):")
+    print(X_transformed)
+
